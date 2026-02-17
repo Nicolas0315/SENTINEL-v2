@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 
 from src.data.fetcher import ALL_TICKERS, US_STOCKS, CRYPTO, INDICES, fetch_current_snapshot
+from src.data.macro import macro_snapshot
+from src.data.crypto import fetch_crypto_snapshot
 from src.portfolio.tracker import portfolio_snapshot
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,38 @@ def daily_market_summary() -> str:
                 lines.append(f"{emoji} `{t:8s}` {s['price']:>10,.2f}  ({s['change_pct']:+.2f}%)")
             else:
                 lines.append(f"⚪ `{t:8s}` N/A")
+
+    # Macro indicators
+    macro = macro_snapshot()
+    lines.append("\n**🏛️ Macro Indicators**")
+    fg = macro.get("fear_greed")
+    if fg:
+        lines.append(f"• Fear & Greed: **{fg['score']}** ({fg['rating']})")
+    if macro.get("us10y_yield") is not None:
+        lines.append(f"• US 10Y Yield: **{macro['us10y_yield']:.2f}%**")
+    if macro.get("dollar_index") is not None:
+        lines.append(f"• Dollar Index: **{macro['dollar_index']:.2f}**")
+    if macro.get("vix") is not None:
+        lines.append(f"• VIX: **{macro['vix']:.2f}**")
+    if macro.get("usdjpy") is not None:
+        lines.append(f"• USD/JPY: **{macro['usdjpy']:.2f}**")
+    if macro.get("fed_funds_rate") is not None:
+        lines.append(f"• Fed Funds (13w proxy): **{macro['fed_funds_rate']:.2f}%**")
+    cpi = macro.get("cpi")
+    if cpi:
+        lines.append(f"• CPI: **{cpi['value']}** ({cpi.get('periodName', '')} {cpi.get('year', '')})")
+
+    # Crypto snapshot
+    crypto_snap = fetch_crypto_snapshot()
+    lines.append("\n**🪙 Crypto Overview**")
+    for label, key in [("BTC", "btc"), ("WLD", "wld")]:
+        coin = crypto_snap.get(key)
+        if coin and coin.get("price_usd") is not None:
+            emoji = "🟢" if coin["change_24h_pct"] >= 0 else "🔴"
+            lines.append(f"{emoji} **{label}**: ${coin['price_usd']:,.2f} ({coin['change_24h_pct']:+.2f}%)")
+    btc_fg = crypto_snap.get("btc_fear_greed")
+    if btc_fg:
+        lines.append(f"• BTC Fear & Greed: **{btc_fg['value']}** ({btc_fg['classification']})")
 
     return "\n".join(lines)
 
