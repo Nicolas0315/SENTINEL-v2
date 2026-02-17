@@ -126,7 +126,7 @@ def detect_head_and_shoulders(prices: pd.Series, period: int = 100, tolerance: f
     n = len(recent)
 
     # Find local maxima (smoothed to avoid noise)
-    smoothed = pd.Series(recent).rolling(3, center=True).mean().fillna(method="bfill").fillna(method="ffill").values
+    smoothed = pd.Series(recent).rolling(3, center=True).mean().bfill().ffill().values
     maxima = []
     for i in range(2, n - 2):
         if smoothed[i] > smoothed[i - 1] and smoothed[i] > smoothed[i + 1]:
